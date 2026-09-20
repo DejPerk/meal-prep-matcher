@@ -425,7 +425,7 @@ function render() {
     .filter(x => x.score.total > 0 && x.score.realMatches > 0);
 
   const ready = scored.filter(x => x.score.pct >= 0.999).sort((a,b) => a.score.total - b.score.total);
-  const almost = scored.filter(x => x.score.pct >= 0.6 && x.score.pct < 0.999)
+  const almost = scored.filter(x => x.score.pct < 0.999)
     .sort((a,b) => b.score.pct - a.score.pct);
 
   document.getElementById('readyCount').textContent = ready.length + (ready.length === 1 ? ' recipe' : ' recipes');
