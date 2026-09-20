@@ -6,6 +6,9 @@ Vegetarian, Dessert, and Sides/Snacks/Marinades/Butters).
 
 ## What's in here
 
+- **`index.html`** — the web app: a pantry matcher plus a full recipe browser,
+  loading data at runtime via `fetch('./recipes.json')` (must be hosted, e.g.
+  on GitHub Pages — `fetch()` of a local file doesn't work from `file://`).
 - **`recipes.json`** — the full dataset: 356 recipes, each with macros,
   structured ingredients, step-by-step instructions, and a tip.
 - **`parser.py`** — the core parsing logic (markdown → structured recipe
@@ -13,6 +16,22 @@ Vegetarian, Dessert, and Sides/Snacks/Marinades/Butters).
   matching).
 - **`build_dataset.py`** — the pipeline entry point: loads all 7 source
   documents, tags each recipe with its category, and writes `recipes.json`.
+
+## App features
+
+- **Pantry Match** — type what you have, get recipes ranked by how much of
+  the ingredient list you already own, split into "Ready to make" (100%)
+  and "Almost there" (ranked by closeness, with exactly what's missing).
+  An "assume basic staples" toggle skips having to type salt/oil/etc. every
+  time, but a recipe only qualifies if at least one *real* typed ingredient
+  matches — staples alone won't surface something irrelevant.
+- **Browse All Recipes** — search by title or ingredient, sort by calories
+  or protein, filter by category, or hit "Surprise me" for a random pick.
+- **Ingredient checklists** — check off ingredients as you shop or prep;
+  state is saved per-recipe in your browser (`localStorage`), so it
+  persists across visits.
+- Dark-mode aware throughout (colors invert automatically based on your
+  system theme).
 
 ## Pipeline
 
