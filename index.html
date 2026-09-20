@@ -356,24 +356,20 @@ function parsePantry(text) {
   return text.split(/[,\n]/).map(s => s.trim().toLowerCase()).filter(Boolean);
 }
 
-function ingredientIsMatched(ingName, pantryTokens, assumeStaples) {
-  if (assumeStaples && STAPLES.some(s => ingName.includes(s) || s.includes(ingName))) return true;
-  return pantryTokens.some(tok => tok.length > 1 && (ingName.includes(tok) || tok.includes(ingName)));
-}
-
 function scoreRecipe(recipe, pantryTokens, assumeStaples) {
   const total = recipe.ingredients.length;
-  if (total === 0) return { matched: 0, total: 0, missing: [], pct: 0 };
+  if (total === 0) return { matched: 0, total: 0, missing: [], pct: 0, realMatches: 0 };
   const missing = [];
   let matched = 0;
+  let realMatches = 0;
   for (const ing of recipe.ingredients) {
-    if (ingredientIsMatched(ing.name, pantryTokens, assumeStaples)) {
-      matched++;
-    } else {
-      missing.push(ing.name);
-    }
+    const viaPantry = pantryTokens.some(tok => tok.length > 1 && (ing.name.includes(tok) || tok.includes(ing.name)));
+    const viaStaple = !viaPantry && assumeStaples && STAPLES.some(s => ing.name.includes(s) || s.includes(ing.name));
+    if (viaPantry) { matched++; realMatches++; }
+    else if (viaStaple) { matched++; }
+    else { missing.push(ing.name); }
   }
-  return { matched, total, missing, pct: matched / total };
+  return { matched, total, missing, pct: matched / total, realMatches };
 }
 
 function macroRow(m) {
@@ -426,7 +422,7 @@ function render() {
   if (activeCategory) pool = pool.filter(r => r.category === activeCategory);
 
   const scored = pool.map(r => ({ recipe: r, score: scoreRecipe(r, pantryTokens, assumeStaples) }))
-    .filter(x => x.score.total > 0);
+    .filter(x => x.score.total > 0 && x.score.realMatches > 0);
 
   const ready = scored.filter(x => x.score.pct >= 0.999).sort((a,b) => a.score.total - b.score.total);
   const almost = scored.filter(x => x.score.pct >= 0.6 && x.score.pct < 0.999)
