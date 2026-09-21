@@ -142,8 +142,36 @@
 
   .empty { text-align: center; padding: 40px 20px; color: var(--muted-2); font-size: 15px; grid-column: 1 / -1; }
 
-  #browseView { display: none; }
-  #browseView.active, #pantryView.active { display: block; }
+  #browseView, #budgetView, #addView { display: none; }
+  #browseView.active, #pantryView.active, #budgetView.active, #addView.active { display: block; }
+
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 18px; }
+  .form-grid .full-width { grid-column: 1 / -1; }
+  .form-grid label { display: block; font-size: 13px; font-weight: 600; color: var(--forest); margin-bottom: 6px; }
+  .form-grid input, .form-grid select, .form-grid textarea {
+    width: 100%; border: 1.5px solid var(--line); border-radius: 8px; padding: 10px 12px;
+    font-family: 'Inter', sans-serif; font-size: 14px; color: var(--ink); background: var(--cream);
+  }
+  .form-grid textarea { min-height: 90px; resize: vertical; font-family: 'Inter', monospace; }
+  .macro-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .btn-primary {
+    background: var(--forest); color: var(--white); border: none; border-radius: 8px;
+    padding: 12px 22px; font-family: 'Inter', sans-serif; font-weight: 600; font-size: 14.5px;
+    cursor: pointer;
+  }
+  .btn-primary:hover { background: var(--forest-light); }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-secondary {
+    background: transparent; color: var(--forest); border: 1.5px solid var(--forest); border-radius: 8px;
+    padding: 11px 20px; font-family: 'Inter', sans-serif; font-weight: 600; font-size: 14.5px; cursor: pointer;
+  }
+  .status-msg { font-size: 14px; margin-top: 12px; }
+  .status-msg.error { color: var(--danger); }
+  .status-msg.ok { color: var(--forest); }
+  .file-drop {
+    border: 1.5px dashed var(--line); border-radius: 8px; padding: 16px; text-align: center;
+    font-size: 13.5px; color: var(--muted-2); background: var(--cream);
+  }
 </style>
 </head>
 <body>
@@ -159,6 +187,8 @@
 <nav class="tabs">
   <button id="tabPantryBtn" class="active">Pantry Match</button>
   <button id="tabBrowseBtn">Browse All Recipes</button>
+  <button id="tabBudgetBtn">What Can I Eat?</button>
+  <button id="tabAddBtn">Add a Recipe</button>
 </nav>
 
 <div class="wrap">
@@ -216,6 +246,110 @@
       <div class="section-head"><h2>All recipes</h2><span class="count" id="browseCount"></span></div>
       <div class="grid" id="browseGrid"></div>
     </section>
+  </div>
+
+  <div id="budgetView">
+    <div class="panel">
+      <div class="browse-controls">
+        <div>
+          <label class="field-label" for="calBudget">Calories remaining today</label>
+          <input id="calBudget" type="number" min="0" step="10" placeholder="e.g. 500">
+        </div>
+        <div>
+          <label class="field-label" for="proteinMin">Minimum protein (optional)</label>
+          <input id="proteinMin" type="number" min="0" step="1" placeholder="e.g. 30g">
+        </div>
+        <div>
+          <label class="field-label" for="budgetSort">Sort by</label>
+          <select id="budgetSort">
+            <option value="closest">Closest to your budget</option>
+            <option value="protein-desc">Highest protein first</option>
+            <option value="cal-asc">Lowest calorie first</option>
+          </select>
+        </div>
+      </div>
+      <p class="hint" style="margin-top:14px;">Shows every recipe at or under your remaining calories — including sides, snacks, and desserts, so a 150-calorie recipe can be a snack, not just a meal.</p>
+      <div class="chips" id="categoryChipsBudget"></div>
+    </div>
+
+    <section class="results">
+      <div class="section-head"><h2>Fits your budget</h2><span class="count" id="budgetCount"></span></div>
+      <div class="grid" id="budgetGrid"></div>
+    </section>
+  </div>
+
+  <div id="addView">
+    <div class="panel">
+      <h2 style="font-size:20px; margin-bottom:6px;">Paste or screenshot a recipe</h2>
+      <p class="hint" style="margin-top:0;">Paste the text of a recipe, upload a screenshot, or both. Claude will read it and fill in the fields below — review and edit before adding it to your collection.</p>
+
+      <div class="form-grid">
+        <div class="full-width">
+          <label for="rawText">Recipe text (optional if uploading an image)</label>
+          <textarea id="rawText" placeholder="Paste ingredients, instructions, anything you've got..."></textarea>
+        </div>
+        <div class="full-width">
+          <label for="rawImage">Screenshot (optional)</label>
+          <input type="file" id="rawImage" accept="image/*">
+          <div id="imgPreviewWrap" style="margin-top:8px; display:none;">
+            <img id="imgPreview" style="max-width:180px; border-radius:8px; border:1px solid var(--line);">
+          </div>
+        </div>
+      </div>
+      <div class="row">
+        <button class="btn-primary" id="formatBtn">✨ Format with AI</button>
+        <span class="status-msg" id="formatStatus"></span>
+      </div>
+    </div>
+
+    <div class="panel" id="reviewPanel" style="margin-top:24px; display:none;">
+      <h2 style="font-size:20px; margin-bottom:16px;">Review before adding</h2>
+      <div class="form-grid">
+        <div>
+          <label for="fTitle">Title</label>
+          <input id="fTitle" type="text">
+        </div>
+        <div>
+          <label for="fCategory">Category</label>
+          <select id="fCategory"></select>
+        </div>
+        <div class="full-width">
+          <label for="fDescription">Description</label>
+          <input id="fDescription" type="text">
+        </div>
+        <div class="full-width">
+          <label>Macros (per serving, 4 servings) — leave blank for marinades/butters</label>
+          <div class="macro-grid">
+            <input id="fCalories" type="number" placeholder="Calories">
+            <input id="fProtein" type="number" placeholder="Protein (g)">
+            <input id="fCarbs" type="number" placeholder="Carbs (g)">
+            <input id="fFat" type="number" placeholder="Fat (g)">
+          </div>
+        </div>
+        <div class="full-width">
+          <label for="fIngredients">Ingredients (one per line)</label>
+          <textarea id="fIngredients" style="min-height:140px;"></textarea>
+        </div>
+        <div class="full-width">
+          <label for="fInstructions">Instructions (one step per line)</label>
+          <textarea id="fInstructions" style="min-height:140px;"></textarea>
+        </div>
+        <div class="full-width">
+          <label for="fTip">Tip (optional)</label>
+          <input id="fTip" type="text">
+        </div>
+      </div>
+      <div class="row">
+        <button class="btn-primary" id="saveRecipeBtn">Add to my recipes</button>
+        <span class="status-msg" id="saveStatus"></span>
+      </div>
+    </div>
+
+    <div class="panel" id="downloadPanel" style="margin-top:24px; display:none;">
+      <h2 style="font-size:20px; margin-bottom:10px;">Download your updated dataset</h2>
+      <p class="hint" style="margin-top:0;">You've added <span id="addedCount">0</span> recipe(s) this session. Download the updated file and replace <code>recipes.json</code> in your GitHub repo to make it permanent.</p>
+      <button class="btn-secondary" id="downloadBtn">⬇ Download recipes.json</button>
+    </div>
   </div>
 
   <p id="loadingMsg" style="text-align:center; color:var(--muted-2); padding:60px 0;">Loading recipes…</p>
@@ -381,7 +515,221 @@ function renderPantry() {
     : `<div class="empty">Nothing close yet — try adding more ingredients.</div>`;
 }
 
-// ---------- browse tab ----------
+// ---------- ingredient name normalization (JS port of parser.py's heuristic) ----------
+const DESCRIPTOR_WORDS = ['boneless','skinless','bone-in','skin-on','lean','extra-lean','extra lean',
+  'low-fat','low fat','fat-free','fat free','nonfat','non-fat','unsalted','salted',
+  'fresh','frozen','canned','ripe','large','small','medium','jumbo',
+  'room temperature','softened','melted','plain','reduced-fat','reduced fat'];
+
+function normalizeIngredientName(raw) {
+  let s = raw.toLowerCase();
+  s = s.replace(/\([^)]*\)/g, '');
+  const UNIT_WORDS = 'cups?|tbsps?|tablespoons?|tsps?|teaspoons?|lbs?|pounds?|oz|ounces?|g|kg|ml|l|cans?|' +
+    'cloves?|slices?|pinch(?:es)?|dash(?:es)?|packets?|sheets?|jars?|packs?|bags?|sticks?|' +
+    'bunche?s?|heads?|sprigs?|stalks?|fillets?|pints?|quarts?|blocks?|scoops?';
+  s = s.replace(/^[\d.\s/\u00bc\u00bd\u00be\u2153\u2154\u215b-]+\s*/, '');
+  s = s.replace(new RegExp('^(?:' + UNIT_WORDS + ')\\b\\.?\\s*(?:of\\s+)?'), '');
+  s = s.replace(/^(?:large|small|medium|jumbo)\b\s*/, '');
+
+  let segments = s.split(',').map(x => x.trim()).filter(Boolean);
+  let core = segments[0] || s;
+  let idx = 0;
+  while (idx < segments.length - 1 && DESCRIPTOR_WORDS.includes(segments[idx])) {
+    idx++;
+    core = segments[idx];
+  }
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const d of DESCRIPTOR_WORDS.slice().sort((a,b) => b.length - a.length)) {
+      if (core.startsWith(d + ' ')) { core = core.slice(d.length).trim(); changed = true; }
+    }
+  }
+  core = core.replace(/\b(fresh|chopped|diced|minced|sliced|grated|crushed|softened|melted|shredded|to taste|optional|room temperature|cooked|drained|rinsed|peeled|halved|quartered|divided|for serving|for topping|for garnish)\b/g, '');
+  core = core.replace(/\s+/g, ' ').trim().replace(/^-+|-+$/g, '');
+  return core || raw.trim().toLowerCase();
+}
+
+// ---------- add-recipe tab ----------
+let pendingImageBase64 = null;
+let pendingImageMediaType = null;
+let addedThisSession = 0;
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result.split(',')[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+function populateCategorySelect() {
+  const sel = document.getElementById('fCategory');
+  sel.innerHTML = Object.entries(CATEGORY_LABELS)
+    .map(([val, label]) => `<option value="${val}">${label}</option>`).join('');
+}
+
+async function formatWithAI() {
+  const text = document.getElementById('rawText').value.trim();
+  const statusEl = document.getElementById('formatStatus');
+  const btn = document.getElementById('formatBtn');
+
+  if (!text && !pendingImageBase64) {
+    statusEl.textContent = 'Paste some text or upload an image first.';
+    statusEl.className = 'status-msg error';
+    return;
+  }
+
+  btn.disabled = true;
+  statusEl.textContent = 'Reading your recipe…';
+  statusEl.className = 'status-msg';
+
+  try {
+    const res = await fetch('/api/parse-recipe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        text: text || null,
+        imageBase64: pendingImageBase64,
+        imageMediaType: pendingImageMediaType,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Something went wrong.');
+
+    const r = data.recipe;
+    document.getElementById('fTitle').value = r.title || '';
+    document.getElementById('fCategory').value = r.category || 'chicken';
+    document.getElementById('fDescription').value = r.description || '';
+    document.getElementById('fCalories').value = r.macros ? r.macros.calories ?? '' : '';
+    document.getElementById('fProtein').value = r.macros ? r.macros.protein_g ?? '' : '';
+    document.getElementById('fCarbs').value = r.macros ? r.macros.carbs_g ?? '' : '';
+    document.getElementById('fFat').value = r.macros ? r.macros.fat_g ?? '' : '';
+    document.getElementById('fIngredients').value = (r.ingredients || []).join('\n');
+    document.getElementById('fInstructions').value = (r.instructions || []).join('\n');
+    document.getElementById('fTip').value = r.tip || '';
+
+    document.getElementById('reviewPanel').style.display = 'block';
+    statusEl.textContent = 'Done — review the fields below before adding.';
+    statusEl.className = 'status-msg ok';
+  } catch (err) {
+    statusEl.textContent = 'Error: ' + err.message;
+    statusEl.className = 'status-msg error';
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function saveRecipe() {
+  const category = document.getElementById('fCategory').value;
+  const title = document.getElementById('fTitle').value.trim();
+  const statusEl = document.getElementById('saveStatus');
+
+  if (!title) {
+    statusEl.textContent = 'Give it a title first.';
+    statusEl.className = 'status-msg error';
+    return;
+  }
+
+  const existingIds = RECIPES.filter(r => r.category === category).map(r => r.id);
+  const newId = existingIds.length ? Math.max(...existingIds) + 1 : 1;
+  const uid = `${category}-${newId}`;
+
+  const cal = document.getElementById('fCalories').value;
+  const macros = cal !== '' ? {
+    calories: Number(document.getElementById('fCalories').value) || 0,
+    protein_g: Number(document.getElementById('fProtein').value) || 0,
+    carbs_g: Number(document.getElementById('fCarbs').value) || 0,
+    fat_g: Number(document.getElementById('fFat').value) || 0,
+  } : null;
+
+  const ingredients = document.getElementById('fIngredients').value.split('\n')
+    .map(s => s.trim()).filter(Boolean)
+    .map(raw => ({ raw, name: normalizeIngredientName(raw) }));
+  const instructions = document.getElementById('fInstructions').value.split('\n')
+    .map(s => s.trim()).filter(Boolean);
+
+  const newRecipe = {
+    id: newId,
+    uid,
+    title,
+    category,
+    subcategory: null,
+    description: document.getElementById('fDescription').value.trim(),
+    macros,
+    servings: 4,
+    ingredients,
+    instructions,
+    tip: document.getElementById('fTip').value.trim() || null,
+  };
+
+  RECIPES.push(newRecipe);
+  addedThisSession++;
+  document.getElementById('addedCount').textContent = addedThisSession;
+  document.getElementById('downloadPanel').style.display = 'block';
+
+  statusEl.textContent = `Added "${title}" — it's live in Pantry Match, Browse, and What Can I Eat right away.`;
+  statusEl.className = 'status-msg ok';
+
+  // reset the form for the next one
+  document.getElementById('rawText').value = '';
+  document.getElementById('rawImage').value = '';
+  document.getElementById('imgPreviewWrap').style.display = 'none';
+  pendingImageBase64 = null;
+  pendingImageMediaType = null;
+  document.getElementById('reviewPanel').style.display = 'none';
+
+  // rebuild chip counts and refresh any already-rendered views
+  buildChips('categoryChipsPantry', renderPantry);
+  buildChips('categoryChipsBrowse', renderBrowse);
+  buildChips('categoryChipsBudget', renderBudget);
+}
+
+function downloadRecipesJson() {
+  const blob = new Blob([JSON.stringify(RECIPES, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'recipes.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+
+function renderBudget() {
+  const budgetInput = document.getElementById('calBudget').value;
+  const proteinInput = document.getElementById('proteinMin').value;
+  const sortMode = document.getElementById('budgetSort').value;
+  const grid = document.getElementById('budgetGrid');
+
+  if (!budgetInput || Number(budgetInput) <= 0) {
+    document.getElementById('budgetCount').textContent = '';
+    grid.innerHTML = `<div class="empty">Enter your remaining calories above to see what fits.</div>`;
+    return;
+  }
+  const budget = Number(budgetInput);
+  const minProtein = proteinInput ? Number(proteinInput) : 0;
+
+  let pool = RECIPES.filter(r => r.macros && r.macros.calories <= budget && r.macros.protein_g >= minProtein);
+  if (activeCategory) pool = pool.filter(r => r.category === activeCategory);
+
+  pool = pool.slice().sort((a, b) => {
+    if (sortMode === 'closest') return b.macros.calories - a.macros.calories;
+    if (sortMode === 'protein-desc') return b.macros.protein_g - a.macros.protein_g;
+    if (sortMode === 'cal-asc') return a.macros.calories - b.macros.calories;
+    return 0;
+  });
+
+  document.getElementById('budgetCount').textContent = pool.length + (pool.length === 1 ? ' recipe' : ' recipes');
+  grid.innerHTML = pool.length
+    ? pool.map(r => cardHTML(r, null)).join('')
+    : `<div class="empty">Nothing fits that budget yet — try raising it, or clear the protein minimum.</div>`;
+}
+
+
 function renderBrowse() {
   const query = document.getElementById('searchBox').value.trim().toLowerCase();
   const sortMode = document.getElementById('sortMode').value;
@@ -466,9 +814,15 @@ function switchTab(tab) {
   currentTab = tab;
   document.getElementById('pantryView').classList.toggle('active', tab === 'pantry');
   document.getElementById('browseView').classList.toggle('active', tab === 'browse');
+  document.getElementById('budgetView').classList.toggle('active', tab === 'budget');
+  document.getElementById('addView').classList.toggle('active', tab === 'add');
   document.getElementById('tabPantryBtn').classList.toggle('active', tab === 'pantry');
   document.getElementById('tabBrowseBtn').classList.toggle('active', tab === 'browse');
-  if (tab === 'pantry') renderPantry(); else renderBrowse();
+  document.getElementById('tabBudgetBtn').classList.toggle('active', tab === 'budget');
+  document.getElementById('tabAddBtn').classList.toggle('active', tab === 'add');
+  if (tab === 'pantry') renderPantry();
+  else if (tab === 'browse') renderBrowse();
+  else if (tab === 'budget') renderBudget();
 }
 
 // ---------- init ----------
@@ -476,6 +830,8 @@ function initApp() {
   loadSavedPantry();
   buildChips('categoryChipsPantry', renderPantry);
   buildChips('categoryChipsBrowse', renderBrowse);
+  buildChips('categoryChipsBudget', renderBudget);
+  populateCategorySelect();
 
   let debounceTimer;
   document.getElementById('pantry').addEventListener('input', () => {
@@ -489,8 +845,31 @@ function initApp() {
   });
   document.getElementById('sortMode').addEventListener('change', renderBrowse);
   document.getElementById('surpriseBtn').addEventListener('click', surpriseMe);
+  document.getElementById('calBudget').addEventListener('input', () => {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(renderBudget, 200);
+  });
+  document.getElementById('proteinMin').addEventListener('input', () => {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(renderBudget, 200);
+  });
+  document.getElementById('budgetSort').addEventListener('change', renderBudget);
   document.getElementById('tabPantryBtn').addEventListener('click', () => switchTab('pantry'));
   document.getElementById('tabBrowseBtn').addEventListener('click', () => switchTab('browse'));
+  document.getElementById('tabBudgetBtn').addEventListener('click', () => switchTab('budget'));
+  document.getElementById('tabAddBtn').addEventListener('click', () => switchTab('add'));
+
+  document.getElementById('rawImage').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) { pendingImageBase64 = null; pendingImageMediaType = null; return; }
+    pendingImageBase64 = await fileToBase64(file);
+    pendingImageMediaType = file.type;
+    document.getElementById('imgPreview').src = 'data:' + file.type + ';base64,' + pendingImageBase64;
+    document.getElementById('imgPreviewWrap').style.display = 'block';
+  });
+  document.getElementById('formatBtn').addEventListener('click', formatWithAI);
+  document.getElementById('saveRecipeBtn').addEventListener('click', saveRecipe);
+  document.getElementById('downloadBtn').addEventListener('click', downloadRecipesJson);
 
   renderPantry();
 }

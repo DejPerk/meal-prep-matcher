@@ -27,11 +27,40 @@ Vegetarian, Dessert, and Sides/Snacks/Marinades/Butters).
   matches — staples alone won't surface something irrelevant.
 - **Browse All Recipes** — search by title or ingredient, sort by calories
   or protein, filter by category, or hit "Surprise me" for a random pick.
+- **What Can I Eat?** — enter your remaining calories (and optionally a
+  minimum protein), and see every recipe that fits — including sides,
+  snacks, and desserts, not just full meals.
+- **Add a Recipe** — paste recipe text and/or upload a screenshot; Claude
+  reads it and fills in title, category, macros (scaled to 4 servings),
+  ingredients, instructions, and a tip. Review and edit before adding it to
+  your in-browser dataset, then download the updated `recipes.json` to
+  commit back to the repo.
 - **Ingredient checklists** — check off ingredients as you shop or prep;
-  state is saved per-recipe in your browser (`localStorage`), so it
-  persists across visits.
-- Dark-mode aware throughout (colors invert automatically based on your
-  system theme).
+  state is saved per-recipe in your browser (`localStorage`).
+- Dark-mode aware throughout.
+
+## Setting up "Add a Recipe" (requires Vercel + an Anthropic API key)
+
+GitHub Pages only serves static files — it can't run the code that talks to
+Claude on your behalf. The `api/parse-recipe.js` function needs a host that
+can execute server-side code and keep your API key private. Vercel's free
+tier handles this well and deploys straight from this GitHub repo.
+
+1. Get an API key at [console.anthropic.com](https://console.anthropic.com)
+   (this is billed separately from a claude.ai subscription — usage-based,
+   typically a fraction of a cent per recipe parsed, but not free).
+2. Go to [vercel.com](https://vercel.com), sign up with your GitHub account,
+   and import this repository as a new project.
+3. In the project's Settings → Environment Variables, add
+   `ANTHROPIC_API_KEY` with your key as the value.
+4. Deploy. Vercel serves `index.html` at the root and automatically turns
+   `api/parse-recipe.js` into a live endpoint at `/api/parse-recipe` — no
+   extra configuration needed.
+5. Every future `git push` to this repo redeploys automatically.
+
+Note: once this is live on Vercel, that becomes the URL to actually use for
+the "Add a Recipe" feature — GitHub Pages can still host the rest of the
+site, but only the Vercel deployment can run the API function.
 
 ## Pipeline
 
