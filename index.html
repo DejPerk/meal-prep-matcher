@@ -172,6 +172,11 @@
     border: 1.5px dashed var(--line); border-radius: 8px; padding: 16px; text-align: center;
     font-size: 13.5px; color: var(--muted-2); background: var(--cream);
   }
+  #formatRaw {
+    display: none; white-space: pre-wrap; font-size: 12px; background: var(--cream-dim);
+    border: 1px solid var(--line); border-radius: 8px; padding: 12px; margin-top: 10px;
+    max-height: 300px; overflow: auto; width: 100%;
+  }
 </style>
 </head>
 <body>
@@ -300,6 +305,7 @@
         <button class="btn-primary" id="formatBtn">✨ Format with AI</button>
         <span class="status-msg" id="formatStatus"></span>
       </div>
+      <pre id="formatRaw"></pre>
     </div>
 
     <div class="panel" id="reviewPanel" style="margin-top:24px; display:none;">
@@ -573,6 +579,7 @@ function populateCategorySelect() {
 async function formatWithAI() {
   const text = document.getElementById('rawText').value.trim();
   const statusEl = document.getElementById('formatStatus');
+  const rawEl = document.getElementById('formatRaw');
   const btn = document.getElementById('formatBtn');
 
   if (!text && !pendingImageBase64) {
@@ -584,6 +591,8 @@ async function formatWithAI() {
   btn.disabled = true;
   statusEl.textContent = 'Reading your recipe…';
   statusEl.className = 'status-msg';
+  rawEl.style.display = 'none';
+  rawEl.textContent = '';
 
   try {
     const res = await fetch('/api/parse-recipe', {
@@ -596,7 +605,14 @@ async function formatWithAI() {
       }),
     });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Something went wrong.');
+
+    if (!res.ok) {
+      if (data.raw) {
+        rawEl.textContent = 'Raw model output:\n\n' + data.raw;
+        rawEl.style.display = 'block';
+      }
+      throw new Error(data.error || 'Something went wrong.');
+    }
 
     const r = data.recipe;
     document.getElementById('fTitle').value = r.title || '';
