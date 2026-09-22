@@ -85,7 +85,8 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         model: 'claude-sonnet-5',
-        max_tokens: 2000,
+        max_tokens: 4096,
+        thinking: { type: 'disabled' }, // pure extraction task — no reasoning needed
         system: SYSTEM_PROMPT,
         messages: [{ role: 'user', content }],
       }),
@@ -99,7 +100,11 @@ export default async function handler(req, res) {
     const data = await apiRes.json();
     const textBlock = (data.content || []).find((b) => b.type === 'text');
     if (!textBlock) {
-      return res.status(502).json({ error: 'Claude returned no text content.' });
+      // Shouldn't happen with thinking disabled, but surface real info if it ever does.
+      return res.status(502).json({
+        error: `Claude returned no text content (stop_reason: ${data.stop_reason || 'unknown'}).`,
+        raw: data,
+      });
     }
 
     let jsonStr = textBlock.text.trim();
