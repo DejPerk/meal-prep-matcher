@@ -97,28 +97,34 @@ export default async function handler(req, res) {
       return res.status(502).json({ error: `Claude API error (${apiRes.status}): ${errText}` });
     }
 
-    const data = await apiRes.json();
+      const data = await apiRes.json();
     const textBlock = (data.content || []).find((b) => b.type === 'text');
     if (!textBlock) {
-      // Shouldn't happen with thinking disabled, but surface real info if it ever does.
       return res.status(502).json({
         error: `Claude returned no text content (stop_reason: ${data.stop_reason || 'unknown'}).`,
-        raw: data,
+        raw: JSON.stringify(data),
       });
     }
 
     let jsonStr = textBlock.text.trim();
     jsonStr = jsonStr.replace(/^```json\s*/i, '').replace(/^```\s*/, '').replace(/```\s*$/, '');
 
+    // Fallback: if there's any wrapper text around the JSON object, extract just the object.
+    const firstBrace = jsonStr.indexOf('{');
+    const lastBrace = jsonStr.lastIndexOf('}');
+    if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+      jsonStr = jsonStr.slice(firstBrace, lastBrace + 1);
+    }
+
     let recipe;
     try {
       recipe = JSON.parse(jsonStr);
     } catch (e) {
-      return res.status(502).json({ error: 'Could not parse the model output as JSON.', raw: jsonStr });
+      return res.status(502).json({
+        error: 'Could not parse the model output as JSON.',
+        raw: jsonStr,
+        stop_reason: data.stop_reason,
+      });
     }
 
     return res.status(200).json({ recipe });
-  } catch (err) {
-    return res.status(500).json({ error: err.message || String(err) });
-  }
-}
