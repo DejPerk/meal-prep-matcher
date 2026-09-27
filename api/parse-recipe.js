@@ -97,7 +97,7 @@ export default async function handler(req, res) {
       return res.status(502).json({ error: `Claude API error (${apiRes.status}): ${errText}` });
     }
 
-      const data = await apiRes.json();
+    const data = await apiRes.json();
     const textBlock = (data.content || []).find((b) => b.type === 'text');
     if (!textBlock) {
       return res.status(502).json({
@@ -128,3 +128,7 @@ export default async function handler(req, res) {
     }
 
     return res.status(200).json({ recipe });
+  } catch (err) {
+    return res.status(500).json({ error: err.message || String(err) });
+  }
+}
