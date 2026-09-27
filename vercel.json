@@ -1,0 +1,7 @@
+{
+  "functions": {
+    "api/parse-recipe.js": {
+      "maxDuration": 30
+    }
+  }
+}
