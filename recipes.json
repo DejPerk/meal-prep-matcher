@@ -27247,5 +27247,74 @@
     ],
     "tip": "Remove the jalapeno seeds and ribs for a milder butter, or leave them in for extra heat.",
     "uid": "butters-357"
+  },
+  {
+    "id": 40,
+    "uid": "dessert-40",
+    "title": "Classic Chocolate Chip Cookies",
+    "category": "dessert",
+    "subcategory": null,
+    "description": "Buttery, golden-edged cookies studded with pools of melted chocolate in every bite.",
+    "macros": {
+      "calories": 610,
+      "protein_g": 7,
+      "carbs_g": 78,
+      "fat_g": 31
+    },
+    "servings": 4,
+    "ingredients": [
+      {
+        "raw": "1 cup salted butter, softened",
+        "name": "butter"
+      },
+      {
+        "raw": "1 cup granulated sugar",
+        "name": "granulated sugar"
+      },
+      {
+        "raw": "1 cup light brown sugar, packed",
+        "name": "light brown sugar"
+      },
+      {
+        "raw": "2 teaspoons pure vanilla extract",
+        "name": "pure vanilla extract"
+      },
+      {
+        "raw": "2 large eggs",
+        "name": "eggs"
+      },
+      {
+        "raw": "3 cups all-purpose flour",
+        "name": "all-purpose flour"
+      },
+      {
+        "raw": "1 teaspoon baking soda",
+        "name": "baking soda"
+      },
+      {
+        "raw": "1/2 teaspoon baking powder",
+        "name": "baking powder"
+      },
+      {
+        "raw": "1 teaspoon sea salt",
+        "name": "sea salt"
+      },
+      {
+        "raw": "2 cups chocolate chips (12 oz)",
+        "name": "chocolate chips"
+      }
+    ],
+    "instructions": [
+      "Preheat oven to 375°F (190°C). Line baking sheets with parchment paper and set aside.",
+      "In a medium bowl, mix flour, baking soda, baking powder, and salt. Set aside.",
+      "Cream together butter and sugars until combined.",
+      "Beat in eggs and vanilla until light, about 1 minute.",
+      "Mix in the dry ingredients until just combined.",
+      "Add chocolate chips and mix well.",
+      "Roll 2-3 tablespoons of dough at a time into balls and place evenly spaced on prepared baking sheets.",
+      "Bake for 8-10 minutes, removing when cookies are just barely starting to turn brown.",
+      "Let cookies sit on the baking pan for 5 minutes before transferring to a cooling rack."
+    ],
+    "tip": "Chill the dough for at least 30 minutes before baking to prevent excessive spreading and deepen the flavor."
   }
 ]
