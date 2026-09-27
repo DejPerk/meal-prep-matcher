@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 <style>
   :root {
     --ink: #20241F;
@@ -185,7 +186,7 @@
   <div class="wrap">
     <p class="eyebrow">Meal Prep Recipes</p>
     <h1>What can I cook with what I've already got?</h1>
-    <p>356 clean-eating recipes across chicken, red meat, seafood, vegetarian, breakfast, dessert, and more.</p>
+    <p><span id="recipeCount">356</span> clean-eating recipes across chicken, red meat, seafood, vegetarian, breakfast, dessert, and more.</p>
   </div>
 </header>
 
@@ -285,20 +286,21 @@
 
   <div id="addView">
     <div class="panel">
-      <h2 style="font-size:20px; margin-bottom:6px;">Paste or screenshot a recipe</h2>
-      <p class="hint" style="margin-top:0;">Paste the text of a recipe, upload a screenshot, or both. Claude will read it and fill in the fields below — review and edit before adding it to your collection.</p>
+      <h2 style="font-size:20px; margin-bottom:6px;">Paste or upload a recipe</h2>
+      <p class="hint" style="margin-top:0;">Paste the text of a recipe, upload a screenshot, or upload a Word document — or any combination. Claude will read it and fill in the fields below — review and edit before adding it to your collection.</p>
 
       <div class="form-grid">
         <div class="full-width">
-          <label for="rawText">Recipe text (optional if uploading an image)</label>
+          <label for="rawText">Recipe text (optional if uploading a file)</label>
           <textarea id="rawText" placeholder="Paste ingredients, instructions, anything you've got..."></textarea>
         </div>
         <div class="full-width">
-          <label for="rawImage">Screenshot (optional)</label>
-          <input type="file" id="rawImage" accept="image/*">
+          <label for="rawImage">Screenshot or Word doc (.docx) (optional)</label>
+          <input type="file" id="rawImage" accept="image/*,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document">
           <div id="imgPreviewWrap" style="margin-top:8px; display:none;">
             <img id="imgPreview" style="max-width:180px; border-radius:8px; border:1px solid var(--line);">
           </div>
+          <div id="docStatus" class="hint" style="display:none; margin-top:8px;"></div>
         </div>
       </div>
       <div class="row">
@@ -570,6 +572,20 @@ function fileToBase64(file) {
   });
 }
 
+function fileToArrayBuffer(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+function isDocxFile(file) {
+  return file.name.toLowerCase().endsWith('.docx') ||
+    file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+}
+
 function populateCategorySelect() {
   const sel = document.getElementById('fCategory');
   sel.innerHTML = Object.entries(CATEGORY_LABELS)
@@ -583,7 +599,7 @@ async function formatWithAI() {
   const btn = document.getElementById('formatBtn');
 
   if (!text && !pendingImageBase64) {
-    statusEl.textContent = 'Paste some text or upload an image first.';
+    statusEl.textContent = 'Paste some text or upload a file first.';
     statusEl.className = 'status-msg error';
     return;
   }
@@ -684,6 +700,7 @@ function saveRecipe() {
   addedThisSession++;
   document.getElementById('addedCount').textContent = addedThisSession;
   document.getElementById('downloadPanel').style.display = 'block';
+  document.getElementById('recipeCount').textContent = RECIPES.length;
 
   statusEl.textContent = `Added "${title}" — it's live in Pantry Match, Browse, and What Can I Eat right away.`;
   statusEl.className = 'status-msg ok';
@@ -692,6 +709,7 @@ function saveRecipe() {
   document.getElementById('rawText').value = '';
   document.getElementById('rawImage').value = '';
   document.getElementById('imgPreviewWrap').style.display = 'none';
+  document.getElementById('docStatus').style.display = 'none';
   pendingImageBase64 = null;
   pendingImageMediaType = null;
   document.getElementById('reviewPanel').style.display = 'none';
@@ -877,11 +895,43 @@ function initApp() {
 
   document.getElementById('rawImage').addEventListener('change', async (e) => {
     const file = e.target.files[0];
-    if (!file) { pendingImageBase64 = null; pendingImageMediaType = null; return; }
+    const docStatusEl = document.getElementById('docStatus');
+    const imgWrap = document.getElementById('imgPreviewWrap');
+
+    if (!file) {
+      pendingImageBase64 = null;
+      pendingImageMediaType = null;
+      docStatusEl.style.display = 'none';
+      imgWrap.style.display = 'none';
+      return;
+    }
+
+    if (isDocxFile(file)) {
+      // Word doc: extract text in the browser with mammoth.js, no image sent to the API.
+      pendingImageBase64 = null;
+      pendingImageMediaType = null;
+      imgWrap.style.display = 'none';
+      docStatusEl.style.display = 'block';
+      docStatusEl.textContent = 'Reading Word document…';
+      try {
+        const arrayBuffer = await fileToArrayBuffer(file);
+        const result = await mammoth.extractRawText({ arrayBuffer });
+        const extracted = result.value.trim();
+        const textArea = document.getElementById('rawText');
+        textArea.value = textArea.value ? textArea.value + '\n\n' + extracted : extracted;
+        docStatusEl.textContent = `Loaded "${file.name}" — ${extracted.length.toLocaleString()} characters extracted into the text box below.`;
+      } catch (err) {
+        docStatusEl.textContent = 'Could not read that Word document: ' + err.message;
+      }
+      return;
+    }
+
+    // Otherwise treat it as an image, as before.
+    docStatusEl.style.display = 'none';
     pendingImageBase64 = await fileToBase64(file);
     pendingImageMediaType = file.type;
     document.getElementById('imgPreview').src = 'data:' + file.type + ';base64,' + pendingImageBase64;
-    document.getElementById('imgPreviewWrap').style.display = 'block';
+    imgWrap.style.display = 'block';
   });
   document.getElementById('formatBtn').addEventListener('click', formatWithAI);
   document.getElementById('saveRecipeBtn').addEventListener('click', saveRecipe);
@@ -897,6 +947,7 @@ fetch('./recipes.json')
   })
   .then(data => {
     RECIPES = data;
+    document.getElementById('recipeCount').textContent = RECIPES.length;
     document.getElementById('loadingMsg').style.display = 'none';
     initApp();
   })
