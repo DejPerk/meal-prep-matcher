@@ -316,6 +316,11 @@
         <div>
           <label for="fTitle">Title</label>
           <input id="fTitle" type="text">
+          <div id="dupWarning" class="hint" style="display:none; color:var(--danger); margin-top:6px;"></div>
+          <label id="dupConfirmWrap" style="display:none; align-items:center; gap:8px; font-size:13px; color:var(--forest); margin-top:6px; cursor:pointer;">
+            <input type="checkbox" id="dupConfirm" style="width:15px; height:15px; accent-color:var(--gold);">
+            Add anyway
+          </label>
         </div>
         <div>
           <label for="fCategory">Category</label>
@@ -586,6 +591,38 @@ function isDocxFile(file) {
     file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 }
 
+function normalizeTitle(title) {
+  return (title || '').toLowerCase()
+    .replace(/[^a-z0-9\s]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function findDuplicateRecipe(title) {
+  const norm = normalizeTitle(title);
+  if (!norm) return null;
+  return RECIPES.find(r => normalizeTitle(r.title) === norm) || null;
+}
+
+function checkDuplicateTitle() {
+  const title = document.getElementById('fTitle').value;
+  const warnEl = document.getElementById('dupWarning');
+  const confirmWrap = document.getElementById('dupConfirmWrap');
+  const confirmBox = document.getElementById('dupConfirm');
+  const match = findDuplicateRecipe(title);
+
+  if (match) {
+    warnEl.textContent = `Possible duplicate: "${match.title}" already exists in ${CATEGORY_LABELS[match.category] || match.category}.`;
+    warnEl.style.display = 'block';
+    confirmWrap.style.display = 'flex';
+  } else {
+    warnEl.style.display = 'none';
+    confirmWrap.style.display = 'none';
+    confirmBox.checked = false;
+  }
+  return match;
+}
+
 function populateCategorySelect() {
   const sel = document.getElementById('fCategory');
   sel.innerHTML = Object.entries(CATEGORY_LABELS)
@@ -645,6 +682,7 @@ async function formatWithAI() {
     document.getElementById('reviewPanel').style.display = 'block';
     statusEl.textContent = 'Done — review the fields below before adding.';
     statusEl.className = 'status-msg ok';
+    checkDuplicateTitle();
   } catch (err) {
     statusEl.textContent = 'Error: ' + err.message;
     statusEl.className = 'status-msg error';
@@ -661,6 +699,15 @@ function saveRecipe() {
   if (!title) {
     statusEl.textContent = 'Give it a title first.';
     statusEl.className = 'status-msg error';
+    return;
+  }
+
+  const dupMatch = findDuplicateRecipe(title);
+  const dupConfirmed = document.getElementById('dupConfirm').checked;
+  if (dupMatch && !dupConfirmed) {
+    statusEl.textContent = `This looks like a duplicate of "${dupMatch.title}" — check "Add anyway" above if you want to add it anyway.`;
+    statusEl.className = 'status-msg error';
+    checkDuplicateTitle();
     return;
   }
 
@@ -710,6 +757,9 @@ function saveRecipe() {
   document.getElementById('rawImage').value = '';
   document.getElementById('imgPreviewWrap').style.display = 'none';
   document.getElementById('docStatus').style.display = 'none';
+  document.getElementById('dupWarning').style.display = 'none';
+  document.getElementById('dupConfirmWrap').style.display = 'none';
+  document.getElementById('dupConfirm').checked = false;
   pendingImageBase64 = null;
   pendingImageMediaType = null;
   document.getElementById('reviewPanel').style.display = 'none';
@@ -932,6 +982,10 @@ function initApp() {
     pendingImageMediaType = file.type;
     document.getElementById('imgPreview').src = 'data:' + file.type + ';base64,' + pendingImageBase64;
     imgWrap.style.display = 'block';
+  });
+  document.getElementById('fTitle').addEventListener('input', () => {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(checkDuplicateTitle, 200);
   });
   document.getElementById('formatBtn').addEventListener('click', formatWithAI);
   document.getElementById('saveRecipeBtn').addEventListener('click', saveRecipe);
