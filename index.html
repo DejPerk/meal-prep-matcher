@@ -302,6 +302,14 @@
           </div>
           <div id="docStatus" class="hint" style="display:none; margin-top:8px;"></div>
         </div>
+        <div class="full-width">
+          <label for="scaleMode">Servings</label>
+          <select id="scaleMode">
+            <option value="scale4">Scale this recipe to 4 servings (matches the rest of your collection)</option>
+            <option value="keep">Keep the recipe's original serving size, as written</option>
+          </select>
+          <p class="hint">Either way, the macros below will be labeled with the actual serving size they're calculated for.</p>
+        </div>
       </div>
       <div class="row">
         <button class="btn-primary" id="formatBtn">✨ Format with AI</button>
@@ -326,17 +334,33 @@
           <label for="fCategory">Category</label>
           <select id="fCategory"></select>
         </div>
+        <div>
+          <label for="fServings">Servings this recipe makes</label>
+          <input id="fServings" type="number" min="1" value="4">
+        </div>
         <div class="full-width">
           <label for="fDescription">Description</label>
           <input id="fDescription" type="text">
         </div>
         <div class="full-width">
-          <label>Macros (per serving, 4 servings) — leave blank for marinades/butters</label>
+          <label>Macros (per serving) — leave all four blank for marinades/butters</label>
           <div class="macro-grid">
-            <input id="fCalories" type="number" placeholder="Calories">
-            <input id="fProtein" type="number" placeholder="Protein (g)">
-            <input id="fCarbs" type="number" placeholder="Carbs (g)">
-            <input id="fFat" type="number" placeholder="Fat (g)">
+            <div>
+              <label for="fCalories" style="font-size:12px; margin-bottom:4px;">Calories</label>
+              <input id="fCalories" type="number" placeholder="e.g. 420">
+            </div>
+            <div>
+              <label for="fProtein" style="font-size:12px; margin-bottom:4px;">Protein (g)</label>
+              <input id="fProtein" type="number" placeholder="e.g. 35">
+            </div>
+            <div>
+              <label for="fCarbs" style="font-size:12px; margin-bottom:4px;">Carbs (g)</label>
+              <input id="fCarbs" type="number" placeholder="e.g. 40">
+            </div>
+            <div>
+              <label for="fFat" style="font-size:12px; margin-bottom:4px;">Fat (g)</label>
+              <input id="fFat" type="number" placeholder="e.g. 12">
+            </div>
           </div>
         </div>
         <div class="full-width">
@@ -655,6 +679,7 @@ async function formatWithAI() {
         text: text || null,
         imageBase64: pendingImageBase64,
         imageMediaType: pendingImageMediaType,
+        scaleToFour: document.getElementById('scaleMode').value !== 'keep',
       }),
     });
     const data = await res.json();
@@ -670,6 +695,7 @@ async function formatWithAI() {
     const r = data.recipe;
     document.getElementById('fTitle').value = r.title || '';
     document.getElementById('fCategory').value = r.category || 'chicken';
+    document.getElementById('fServings').value = r.servings || 4;
     document.getElementById('fDescription').value = r.description || '';
     document.getElementById('fCalories').value = r.macros ? r.macros.calories ?? '' : '';
     document.getElementById('fProtein').value = r.macros ? r.macros.protein_g ?? '' : '';
@@ -737,7 +763,7 @@ function saveRecipe() {
     subcategory: null,
     description: document.getElementById('fDescription').value.trim(),
     macros,
-    servings: 4,
+    servings: Number(document.getElementById('fServings').value) || 4,
     ingredients,
     instructions,
     tip: document.getElementById('fTip').value.trim() || null,
@@ -760,6 +786,7 @@ function saveRecipe() {
   document.getElementById('dupWarning').style.display = 'none';
   document.getElementById('dupConfirmWrap').style.display = 'none';
   document.getElementById('dupConfirm').checked = false;
+  document.getElementById('scaleMode').value = 'scale4';
   pendingImageBase64 = null;
   pendingImageMediaType = null;
   document.getElementById('reviewPanel').style.display = 'none';
