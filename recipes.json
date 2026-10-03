@@ -27316,5 +27316,81 @@
       "Let cookies sit on the baking pan for 5 minutes before transferring to a cooling rack."
     ],
     "tip": "Chill the dough for at least 30 minutes before baking to prevent excessive spreading and deepen the flavor."
+  },
+  {
+    "id": 18,
+    "uid": "breakfast-18",
+    "title": "High-Protein Blueberry Muffins",
+    "category": "breakfast",
+    "subcategory": null,
+    "description": "Tender, berry-studded muffins packed with Greek yogurt and cottage cheese for a protein boost without the guilt.",
+    "macros": {
+      "calories": 91,
+      "protein_g": 5,
+      "carbs_g": 13,
+      "fat_g": 2
+    },
+    "servings": 4,
+    "ingredients": [
+      {
+        "raw": "1 tsp melted butter",
+        "name": "butter"
+      },
+      {
+        "raw": "1/3 cup FAGE 0% Greek yogurt",
+        "name": "fage 0% greek yogurt"
+      },
+      {
+        "raw": "2.5 tbsp cottage cheese",
+        "name": "cottage cheese"
+      },
+      {
+        "raw": "1 tbsp beaten whole egg (about 1/3 egg)",
+        "name": "beaten whole egg"
+      },
+      {
+        "raw": "2 tbsp liquid egg whites",
+        "name": "liquid egg whites"
+      },
+      {
+        "raw": "1/4 cup flour",
+        "name": "flour"
+      },
+      {
+        "raw": "4 tsp sugar",
+        "name": "sugar"
+      },
+      {
+        "raw": "1/3 cup blueberries",
+        "name": "blueberries"
+      },
+      {
+        "raw": "1/3 tsp vanilla",
+        "name": "vanilla"
+      },
+      {
+        "raw": "1/3 tsp baking powder",
+        "name": "baking powder"
+      },
+      {
+        "raw": "1/6 tsp baking soda",
+        "name": "baking soda"
+      },
+      {
+        "raw": "pinch of salt",
+        "name": "salt"
+      }
+    ],
+    "instructions": [
+      "Preheat the oven to 375°F. Line or grease 4 cups of a muffin tin.",
+      "Blend the cottage cheese until smooth, then whisk together with the yogurt, egg, egg whites, melted butter, sugar, and vanilla until combined.",
+      "In a separate bowl, mix the flour, baking powder, baking soda, and salt.",
+      "Add the dry ingredients to the wet ingredients and stir just until combined. Don't overmix.",
+      "Gently fold in the blueberries.",
+      "Divide the batter evenly among the 4 muffin cups.",
+      "Bake for 18-22 minutes. Start checking at 18 minutes — a toothpick in the center should come out clean or with a few moist crumbs, but don't wait for it to be completely dry.",
+      "Let the muffins cool in the pan for 5-10 minutes before removing."
+    ],
+    "tip": "Blend the cottage cheese thoroughly — any remaining curds will show up as small white flecks in the baked muffin."
   }
 ]
