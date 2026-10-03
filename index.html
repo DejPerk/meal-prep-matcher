@@ -409,7 +409,7 @@
   <div id="mealPlanView">
     <div class="panel">
       <h2 style="font-size:20px; margin-bottom:6px;">Build a meal plan</h2>
-      <p class="hint" style="margin-top:0;">Pick 2–3 recipes to rotate through this week. Their shopping lists and macros combine below.</p>
+      <p class="hint" style="margin-top:0;">Pick up to 5 recipes to rotate through this week. Their shopping lists and macros combine below.</p>
       <div class="browse-controls">
         <div>
           <label class="field-label" for="mealSearchBox">Search recipes to add</label>
@@ -988,7 +988,7 @@ function toggleMealPlanRecipe(uid) {
   if (idx !== -1) {
     mealPlanSelection.splice(idx, 1);
   } else {
-    if (mealPlanSelection.length >= 3) return;
+    if (mealPlanSelection.length >= 5) return;
     mealPlanSelection.push(uid);
   }
   saveMealPlanState();
@@ -1004,7 +1004,7 @@ function clearMealPlan() {
 
 function mealPickCardHTML(recipe) {
   const inPlan = mealPlanSelection.includes(recipe.uid);
-  const atLimit = mealPlanSelection.length >= 3 && !inPlan;
+  const atLimit = mealPlanSelection.length >= 5 && !inPlan;
   return `<div class="card">
     <span class="cat">${CATEGORY_LABELS[recipe.category] || recipe.category}</span>
     <h3>${recipe.title}</h3>
@@ -1012,7 +1012,7 @@ function mealPickCardHTML(recipe) {
     ${macroRow(recipe.macros)}
     <button class="pick-btn ${inPlan ? 'in-plan' : ''}" ${atLimit ? 'disabled' : ''}
       onclick="toggleMealPlanRecipe('${recipe.uid}')">
-      ${inPlan ? '✓ In your plan' : (atLimit ? 'Plan full (3 max)' : '+ Add to plan')}
+      ${inPlan ? '✓ In your plan' : (atLimit ? 'Plan full (5 max)' : '+ Add to plan')}
     </button>
   </div>`;
 }
