@@ -147,8 +147,20 @@
 
   .empty { text-align: center; padding: 40px 20px; color: var(--muted-2); font-size: 15px; grid-column: 1 / -1; }
 
-  #browseView, #budgetView, #addView { display: none; }
-  #browseView.active, #pantryView.active, #budgetView.active, #addView.active { display: block; }
+  #browseView, #budgetView, #addView, #mealPlanView { display: none; }
+  #browseView.active, #pantryView.active, #budgetView.active, #addView.active, #mealPlanView.active { display: block; }
+  .meal-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  .meal-table th, .meal-table td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+  .meal-table th { color: var(--forest); font-weight: 600; }
+  .meal-table tr.total-row td { font-weight: 600; border-top: 2px solid var(--forest); }
+  .selected-recipe-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line); }
+  .selected-recipe-row:last-child { border-bottom: none; }
+  .selected-recipe-row .srr-title { font-weight: 600; color: var(--forest); }
+  .selected-recipe-row .srr-meta { font-size: 12.5px; color: var(--muted-2); }
+  .remove-btn { background: transparent; border: 1px solid var(--line); border-radius: 6px; padding: 4px 10px; font-size: 12.5px; color: var(--danger); cursor: pointer; }
+  .pick-btn { width: 100%; margin-top: 4px; border: 1.5px solid var(--forest); border-radius: 8px; padding: 8px; font-family: 'Inter', sans-serif; font-weight: 600; font-size: 13px; cursor: pointer; background: transparent; color: var(--forest); }
+  .pick-btn.in-plan { background: var(--forest); color: var(--white); }
+  .pick-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
   .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 18px; }
   .form-grid .full-width { grid-column: 1 / -1; }
@@ -199,6 +211,7 @@
   <button id="tabBrowseBtn">Browse All Recipes</button>
   <button id="tabBudgetBtn">What Can I Eat?</button>
   <button id="tabAddBtn">Add a Recipe</button>
+  <button id="tabMealBtn">Meal Plan</button>
 </nav>
 
 <div class="wrap">
@@ -390,6 +403,44 @@
       <h2 style="font-size:20px; margin-bottom:10px;">Download your updated dataset</h2>
       <p class="hint" style="margin-top:0;">You've added <span id="addedCount">0</span> recipe(s) this session. Download the updated file and replace <code>recipes.json</code> in your GitHub repo to make it permanent.</p>
       <button class="btn-secondary" id="downloadBtn">⬇ Download recipes.json</button>
+    </div>
+  </div>
+
+  <div id="mealPlanView">
+    <div class="panel">
+      <h2 style="font-size:20px; margin-bottom:6px;">Build a meal plan</h2>
+      <p class="hint" style="margin-top:0;">Pick 2–3 recipes to rotate through this week. Their shopping lists and macros combine below.</p>
+      <div class="browse-controls">
+        <div>
+          <label class="field-label" for="mealSearchBox">Search recipes to add</label>
+          <input id="mealSearchBox" type="text" placeholder="Search by title or ingredient...">
+        </div>
+      </div>
+      <div class="chips" id="categoryChipsMeal"></div>
+    </div>
+
+    <section class="results">
+      <div class="section-head"><h2>Pick recipes</h2><span class="count" id="mealPickCount"></span></div>
+      <div class="grid" id="mealPickGrid"></div>
+    </section>
+
+    <div class="panel" id="mealPlanSelectedPanel" style="margin-top:32px;">
+      <div class="row" style="justify-content:space-between; margin-top:0;">
+        <h2 style="font-size:20px;">Your meal plan</h2>
+        <button class="btn-secondary" id="clearMealPlanBtn">Clear plan</button>
+      </div>
+      <div id="mealPlanEmpty" class="hint">No recipes selected yet — pick 2–3 above.</div>
+      <div id="mealPlanSelectedList"></div>
+    </div>
+
+    <div class="panel" id="mealPlanShoppingPanel" style="margin-top:24px; display:none;">
+      <h2 style="font-size:20px; margin-bottom:12px;">Combined shopping list</h2>
+      <div id="mealPlanShoppingList"></div>
+    </div>
+
+    <div class="panel" id="mealPlanMacrosPanel" style="margin-top:24px; display:none;">
+      <h2 style="font-size:20px; margin-bottom:12px;">Combined macros</h2>
+      <div id="mealPlanMacrosTable" style="overflow-x:auto;"></div>
     </div>
   </div>
 
@@ -825,6 +876,7 @@ function saveRecipe() {
   buildChips('categoryChipsPantry', renderPantry);
   buildChips('categoryChipsBrowse', renderBrowse);
   buildChips('categoryChipsBudget', renderBudget);
+  buildChips('categoryChipsMeal', renderMealPlan);
 }
 
 function downloadRecipesJson() {
@@ -920,6 +972,178 @@ function surpriseMe() {
   });
 }
 
+// ---------- meal plan ----------
+let mealPlanSelection = [];
+
+function loadMealPlan() {
+  const raw = safeGet('pantryMatch.mealPlan');
+  mealPlanSelection = raw ? JSON.parse(raw) : [];
+}
+function saveMealPlanState() {
+  safeSet('pantryMatch.mealPlan', JSON.stringify(mealPlanSelection));
+}
+
+function toggleMealPlanRecipe(uid) {
+  const idx = mealPlanSelection.indexOf(uid);
+  if (idx !== -1) {
+    mealPlanSelection.splice(idx, 1);
+  } else {
+    if (mealPlanSelection.length >= 3) return;
+    mealPlanSelection.push(uid);
+  }
+  saveMealPlanState();
+  renderMealPlan();
+}
+window.toggleMealPlanRecipe = toggleMealPlanRecipe;
+
+function clearMealPlan() {
+  mealPlanSelection = [];
+  saveMealPlanState();
+  renderMealPlan();
+}
+
+function mealPickCardHTML(recipe) {
+  const inPlan = mealPlanSelection.includes(recipe.uid);
+  const atLimit = mealPlanSelection.length >= 3 && !inPlan;
+  return `<div class="card">
+    <span class="cat">${CATEGORY_LABELS[recipe.category] || recipe.category}</span>
+    <h3>${recipe.title}</h3>
+    <p class="desc">${recipe.description || ''}</p>
+    ${macroRow(recipe.macros)}
+    <button class="pick-btn ${inPlan ? 'in-plan' : ''}" ${atLimit ? 'disabled' : ''}
+      onclick="toggleMealPlanRecipe('${recipe.uid}')">
+      ${inPlan ? '✓ In your plan' : (atLimit ? 'Plan full (3 max)' : '+ Add to plan')}
+    </button>
+  </div>`;
+}
+
+function renderMealPicker() {
+  const query = document.getElementById('mealSearchBox').value.trim().toLowerCase();
+  let pool = RECIPES;
+  if (activeCategory) pool = pool.filter(r => r.category === activeCategory);
+  if (query) {
+    pool = pool.filter(r =>
+      r.title.toLowerCase().includes(query) ||
+      (r.description || '').toLowerCase().includes(query) ||
+      r.ingredients.some(i => i.name.includes(query))
+    );
+  }
+  document.getElementById('mealPickCount').textContent = pool.length + (pool.length === 1 ? ' recipe' : ' recipes');
+  const grid = document.getElementById('mealPickGrid');
+  grid.innerHTML = pool.length
+    ? pool.slice(0, 60).map(r => mealPickCardHTML(r)).join('')
+    : `<div class="empty">No recipes match that search.</div>`;
+}
+
+function renderMealPlanSelected() {
+  const listEl = document.getElementById('mealPlanSelectedList');
+  const emptyEl = document.getElementById('mealPlanEmpty');
+  const selectedRecipes = mealPlanSelection
+    .map(uid => RECIPES.find(r => r.uid === uid))
+    .filter(Boolean);
+
+  if (selectedRecipes.length === 0) {
+    emptyEl.style.display = 'block';
+    listEl.innerHTML = '';
+  } else {
+    emptyEl.style.display = 'none';
+    listEl.innerHTML = selectedRecipes.map(r => `
+      <div class="selected-recipe-row">
+        <div>
+          <div class="srr-title">${r.title}</div>
+          <div class="srr-meta">${CATEGORY_LABELS[r.category] || r.category}${r.macros ? ' · ' + r.macros.calories + ' cal' : ''}</div>
+        </div>
+        <button class="remove-btn" onclick="toggleMealPlanRecipe('${r.uid}')">Remove</button>
+      </div>
+    `).join('');
+  }
+  return selectedRecipes;
+}
+
+function renderMealPlanShopping(selectedRecipes) {
+  const panel = document.getElementById('mealPlanShoppingPanel');
+  const listEl = document.getElementById('mealPlanShoppingList');
+
+  if (selectedRecipes.length === 0) {
+    panel.style.display = 'none';
+    return;
+  }
+  panel.style.display = 'block';
+
+  const groups = {};
+  selectedRecipes.forEach(r => {
+    r.ingredients.forEach(ing => {
+      if (!groups[ing.name]) groups[ing.name] = [];
+      groups[ing.name].push({ raw: ing.raw, recipeTitle: r.title });
+    });
+  });
+
+  const sortedNames = Object.keys(groups).sort();
+  listEl.innerHTML = '<ul style="list-style:none; padding:0; margin:0;">' +
+    sortedNames.map(name => {
+      const entries = groups[name];
+      if (entries.length === 1) {
+        return `<li style="padding:6px 0; border-bottom:1px solid var(--line);">${entries[0].raw}</li>`;
+      }
+      const combined = entries.map(e => `${e.raw} <span style="color:var(--muted-2);">(${e.recipeTitle})</span>`).join(' + ');
+      return `<li style="padding:6px 0; border-bottom:1px solid var(--line);"><b>${name}</b> — ${combined}</li>`;
+    }).join('') +
+  '</ul>';
+}
+
+function renderMealPlanMacros(selectedRecipes) {
+  const panel = document.getElementById('mealPlanMacrosPanel');
+  const tableEl = document.getElementById('mealPlanMacrosTable');
+
+  const withMacros = selectedRecipes.filter(r => r.macros);
+  if (withMacros.length === 0) {
+    panel.style.display = 'none';
+    return;
+  }
+  panel.style.display = 'block';
+
+  const totals = withMacros.reduce((acc, r) => {
+    acc.calories += r.macros.calories;
+    acc.protein_g += r.macros.protein_g;
+    acc.carbs_g += r.macros.carbs_g;
+    acc.fat_g += r.macros.fat_g;
+    return acc;
+  }, { calories: 0, protein_g: 0, carbs_g: 0, fat_g: 0 });
+
+  tableEl.innerHTML = `
+    <table class="meal-table">
+      <thead>
+        <tr><th>Recipe</th><th>Calories</th><th>Protein</th><th>Carbs</th><th>Fat</th></tr>
+      </thead>
+      <tbody>
+        ${withMacros.map(r => `
+          <tr>
+            <td>${r.title}</td>
+            <td>${r.macros.calories}</td>
+            <td>${r.macros.protein_g}g</td>
+            <td>${r.macros.carbs_g}g</td>
+            <td>${r.macros.fat_g}g</td>
+          </tr>
+        `).join('')}
+        <tr class="total-row">
+          <td>If you ate all ${withMacros.length} in one day</td>
+          <td>${totals.calories}</td>
+          <td>${totals.protein_g}g</td>
+          <td>${totals.carbs_g}g</td>
+          <td>${totals.fat_g}g</td>
+        </tr>
+      </tbody>
+    </table>
+  `;
+}
+
+function renderMealPlan() {
+  renderMealPicker();
+  const selected = renderMealPlanSelected();
+  renderMealPlanShopping(selected);
+  renderMealPlanMacros(selected);
+}
+
 // ---------- chips (shared logic, separate DOM per tab) ----------
 function buildChips(containerId, onSelect) {
   const wrap = document.getElementById(containerId);
@@ -957,21 +1181,26 @@ function switchTab(tab) {
   document.getElementById('browseView').classList.toggle('active', tab === 'browse');
   document.getElementById('budgetView').classList.toggle('active', tab === 'budget');
   document.getElementById('addView').classList.toggle('active', tab === 'add');
+  document.getElementById('mealPlanView').classList.toggle('active', tab === 'meal');
   document.getElementById('tabPantryBtn').classList.toggle('active', tab === 'pantry');
   document.getElementById('tabBrowseBtn').classList.toggle('active', tab === 'browse');
   document.getElementById('tabBudgetBtn').classList.toggle('active', tab === 'budget');
   document.getElementById('tabAddBtn').classList.toggle('active', tab === 'add');
+  document.getElementById('tabMealBtn').classList.toggle('active', tab === 'meal');
   if (tab === 'pantry') renderPantry();
   else if (tab === 'browse') renderBrowse();
   else if (tab === 'budget') renderBudget();
+  else if (tab === 'meal') renderMealPlan();
 }
 
 // ---------- init ----------
 function initApp() {
   loadSavedPantry();
+  loadMealPlan();
   buildChips('categoryChipsPantry', renderPantry);
   buildChips('categoryChipsBrowse', renderBrowse);
   buildChips('categoryChipsBudget', renderBudget);
+  buildChips('categoryChipsMeal', renderMealPlan);
   populateCategorySelect();
 
   let debounceTimer;
@@ -999,6 +1228,12 @@ function initApp() {
   document.getElementById('tabBrowseBtn').addEventListener('click', () => switchTab('browse'));
   document.getElementById('tabBudgetBtn').addEventListener('click', () => switchTab('budget'));
   document.getElementById('tabAddBtn').addEventListener('click', () => switchTab('add'));
+  document.getElementById('tabMealBtn').addEventListener('click', () => switchTab('meal'));
+  document.getElementById('mealSearchBox').addEventListener('input', () => {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(renderMealPicker, 200);
+  });
+  document.getElementById('clearMealPlanBtn').addEventListener('click', clearMealPlan);
 
   document.getElementById('rawImage').addEventListener('change', async (e) => {
     const file = e.target.files[0];
